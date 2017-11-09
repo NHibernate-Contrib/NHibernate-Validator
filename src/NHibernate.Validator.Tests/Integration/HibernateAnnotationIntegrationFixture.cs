@@ -149,7 +149,7 @@ namespace NHibernate.Validator.Tests.Integration
 			ie.MoveNext();
 			serialColumn = (Column)ie.Current;
 
-			Assert.That(serialColumn.CheckConstraint, Is.Not.Null.Or.Empty, "Validator annotation should not generate check for [Flag]ed Enums");
+			Assert.That(serialColumn.CheckConstraint, Is.Null.Or.Empty, "Validator annotation should not generate check for [Flag]ed Enums");
 		}
 
 		/// <summary>
