@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>Ongeldig e-mailadres</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>moet overeenkomen met Enum definition</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>Datum dient in de toekomst te liggen</value>
   </data>

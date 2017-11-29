@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>oblik e-mail adrese nije dobar</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>meg kell felelnie a Enum meghatározása</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>mora biti budući datum</value>
   </data>

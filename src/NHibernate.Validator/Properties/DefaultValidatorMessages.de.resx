@@ -136,7 +136,7 @@
     <value>not a well-formed email address</value>
   </data>
   <data name="validator.enum" xml:space="preserve">
-    <value>muss overeenkomen met Enum definition</value>
+    <value>muss der Enumerationsdefinition entsprechen</value>
   </data>
   <data name="validator.future" xml:space="preserve">
     <value>muss in der Zukunft liegen</value>

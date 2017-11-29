@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>email non formattata correttamente</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>deve corrispondere a Enum definizione</value>
-  </data>
   <data name="validator.fileExists" xml:space="preserve">
     <value>Il file deve esistere</value>
   </data>

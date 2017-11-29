@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>آدرس پست الکترونیک مجاز نمیباشد</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>باید به تعریف نوع شمارشی مطابقت</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>تاریخی در آینده انتخاب کنید</value>
   </data>

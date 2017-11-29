@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>niepoprawnie sformatowany adres email</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>musi odpowiadać definicji Enum</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>musi być przyszłą datą</value>
   </data>

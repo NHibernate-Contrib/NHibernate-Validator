@@ -135,9 +135,6 @@
   <data name="validator.email" xml:space="preserve">
     <value>Jānorāda korekta e-pasta adrese</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>jāatbilst ENUM definīcijai</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>Jānorāda datums nākotnē</value>
   </data>
