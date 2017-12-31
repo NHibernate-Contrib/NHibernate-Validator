@@ -51,6 +51,12 @@ namespace NHibernate.Validator.Engine
 		void Apply(PersistentClass persistentClass);
 
 		/// <summary>
+		/// Create validators based on hibernate metadata if appropriative validator not defined explicitly
+		/// </summary>
+		/// <param name="properties">Hibernate metadata to analize</param>
+		void ConfigureFrom(IEnumerable<Property> properties);
+
+		/// <summary>
 		/// Get the list of constraints declared for a give member of the entityValidator
 		/// </summary>
 		/// <param name="propertyName">The name of the property.</param>

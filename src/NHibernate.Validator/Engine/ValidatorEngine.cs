@@ -38,6 +38,7 @@ namespace NHibernate.Validator.Engine
 		private ValidatorMode defaultMode;
 		private IConstraintValidatorFactory constraintValidatorFactory;
 		private bool applyToDDL;
+		private bool autoGenerateFromMapping;
 		private bool autoRegisterListeners;
 		private IEntityTypeInspector entityTypeInspector;
 
@@ -75,6 +76,11 @@ namespace NHibernate.Validator.Engine
 			{
 			}
 
+			public void ConfigureFrom(IEnumerable<Property> properties)
+			{
+			}
+
+
 			public IEnumerable<Attribute> GetMemberConstraints(string propertyName)
 			{
 				yield break;
@@ -101,13 +107,13 @@ namespace NHibernate.Validator.Engine
 			constraintValidatorFactory = Environment.ConstraintValidatorFactory ?? new DefaultConstraintValidatorFactory();
 			entityTypeInspector = new DefaultEntityTypeInspector();
 			factory = new StateFullClassValidatorFactory(constraintValidatorFactory, null, null, null, ValidatorMode.UseAttribute,
-			                                             entityTypeInspector);
+														 entityTypeInspector);
 		}
 
 		/// <summary>
 		/// Default MessageInterpolator
 		/// </summary>
-        public virtual IMessageInterpolator Interpolator
+		public virtual IMessageInterpolator Interpolator
 		{
 			get { return interpolator; }
 		}
@@ -115,7 +121,7 @@ namespace NHibernate.Validator.Engine
 		/// <summary>
 		/// Default Mode to construct validators
 		/// </summary>
-        public virtual ValidatorMode DefaultMode
+		public virtual ValidatorMode DefaultMode
 		{
 			get { return defaultMode; }
 		}
@@ -123,15 +129,24 @@ namespace NHibernate.Validator.Engine
 		/// <summary>
 		/// Database schema-level validation enabled
 		/// </summary>
-        public virtual bool ApplyToDDL
+		public virtual bool ApplyToDDL
 		{
 			get { return applyToDDL; }
 		}
 
 		/// <summary>
+		/// Generate validators from NHib mapping, if there is no defined validators
+		/// implicitly defined 
+		/// </summary>
+		public virtual bool AutoGenerateFromMapping
+		{
+			get { return autoGenerateFromMapping; }
+		}
+
+		/// <summary>
 		/// NHibernate event-based validation
 		/// </summary>
-        public virtual bool AutoRegisterListeners
+		public virtual bool AutoRegisterListeners
 		{
 			get { return autoRegisterListeners; }
 		}
@@ -149,7 +164,7 @@ namespace NHibernate.Validator.Engine
 		///		configuration.Configure("path/to/nhvalidator.cfg.xml");
 		/// </code>
 		/// </remarks>
-        public virtual void Configure()
+		public virtual void Configure()
 		{
 			var nhvhc = ConfigurationManager.GetSection(CfgXmlHelper.CfgSectionName) as INHVConfiguration;
 			if (nhvhc != null)
@@ -168,7 +183,7 @@ namespace NHibernate.Validator.Engine
 		/// <remarks>
 		/// Calling Configure(string) will override/merge the values set in app.config or web.config
 		/// </remarks>
-        public virtual void Configure(string configFilePath)
+		public virtual void Configure(string configFilePath)
 		{
 			using (var reader = new XmlTextReader(configFilePath))
 			{
@@ -183,12 +198,12 @@ namespace NHibernate.Validator.Engine
 		/// <remarks>
 		/// Calling Configure(XmlReader) will overwrite the values set in app.config or web.config
 		/// </remarks>
-        public virtual void Configure(XmlReader configReader)
+		public virtual void Configure(XmlReader configReader)
 		{
 			if (configReader == null)
 			{
 				throw new ValidatorConfigurationException("Could not configure NHibernate.Validator.",
-				                                          new ArgumentNullException("configReader"));
+														  new ArgumentNullException("configReader"));
 			}
 
 			INHVConfiguration nhvc = new XmlConfiguration(configReader);
@@ -205,7 +220,7 @@ namespace NHibernate.Validator.Engine
 		/// You can use this overload is you are working with Attributes or Xml-files.
 		/// </para>
 		/// </remarks>
-        public virtual void Configure(INHVConfiguration config)
+		public virtual void Configure(INHVConfiguration config)
 		{
 			Configure(config, config as IMappingLoader);
 		}
@@ -218,21 +233,22 @@ namespace NHibernate.Validator.Engine
 		/// <remarks>
 		/// Calling Configure(INHVConfiguration) will overwrite the values set in app.config or web.config
 		/// </remarks>
-        public virtual void Configure(INHVConfiguration config, IMappingLoader mappingLoader)
+		public virtual void Configure(INHVConfiguration config, IMappingLoader mappingLoader)
 		{
 			if (config == null)
 			{
 				throw new ValidatorConfigurationException("Could not configure NHibernate.Validator.",
-				                                          new ArgumentNullException("config"));
+														  new ArgumentNullException("config"));
 			}
 
 			Clear();
 
 			applyToDDL = PropertiesHelper.GetBoolean(Environment.ApplyToDDL, config.Properties, true);
+			autoGenerateFromMapping = PropertiesHelper.GetBoolean(Environment.AutoGenerateFromMapping, config.Properties, false);
 			autoRegisterListeners = PropertiesHelper.GetBoolean(Environment.AutoregisterListeners, config.Properties, true);
 			defaultMode =
 				CfgXmlHelper.ValidatorModeConvertFrom(PropertiesHelper.GetString(Environment.ValidatorMode, config.Properties,
-				                                                                 string.Empty));
+																				 string.Empty));
 			interpolator =
 				GetImplementation<IMessageInterpolator>(
 					PropertiesHelper.GetString(Environment.MessageInterpolatorClass, config.Properties, string.Empty),
@@ -240,11 +256,11 @@ namespace NHibernate.Validator.Engine
 
 			if (Environment.ConstraintValidatorFactory == null)
 			{
-                constraintValidatorFactory = GetImplementation<IConstraintValidatorFactory>(
-				                             	PropertiesHelper.GetString(Environment.ConstraintValidatorFactoryClass,
-				                             	                           config.Properties,
-				                             	                           string.Empty),
-				                             	"Constraint Validator Factory") ?? new DefaultConstraintValidatorFactory();
+				constraintValidatorFactory = GetImplementation<IConstraintValidatorFactory>(
+												PropertiesHelper.GetString(Environment.ConstraintValidatorFactoryClass,
+																		   config.Properties,
+																		   string.Empty),
+												"Constraint Validator Factory") ?? new DefaultConstraintValidatorFactory();
 			}
 			else
 			{
@@ -264,7 +280,7 @@ namespace NHibernate.Validator.Engine
 
 			ResourceManager customResourceManager = null;
 			var customResourceManagerBaseName = PropertiesHelper.GetString(Environment.CustomResourceManager, config.Properties,
-			                                                               null);
+																		   null);
 			if (!string.IsNullOrEmpty(customResourceManagerBaseName))
 			{
 				var resourceAndAssembly = TypeNameParser.Parse(customResourceManagerBaseName);
@@ -280,15 +296,15 @@ namespace NHibernate.Validator.Engine
 			}
 
 			factory = new StateFullClassValidatorFactory(constraintValidatorFactory, customResourceManager, null, interpolator, defaultMode,
-			                                             entityTypeInspector);
+														 entityTypeInspector);
 
 			// UpLoad Mappings
 			if(mappingLoader == null)
 			{
 				// Configured or Default loader (XmlMappingLoader)
 				mappingLoader = GetImplementation<IMappingLoader>(
-				                	PropertiesHelper.GetString(Environment.MappingLoaderClass, config.Properties, string.Empty),
-				                	"mapping loader") ?? new XmlMappingLoader();
+									PropertiesHelper.GetString(Environment.MappingLoaderClass, config.Properties, string.Empty),
+									"mapping loader") ?? new XmlMappingLoader();
 			}
 			mappingLoader.LoadMappings(config.Mappings);
 			Initialize(mappingLoader);
@@ -303,7 +319,7 @@ namespace NHibernate.Validator.Engine
 			}
 		}
 
-        public virtual void Clear()
+		public virtual void Clear()
 		{
 			validators.Clear();
 		}
@@ -318,7 +334,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <see cref="System.Type"/> of the <paramref name="entity"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual InvalidValue[] Validate(object entity, params object[] activeTags)
+		public virtual InvalidValue[] Validate(object entity, params object[] activeTags)
 		{
 			return InternalValidate(entity, activeTags).ToArray();
 		}
@@ -352,9 +368,9 @@ namespace NHibernate.Validator.Engine
 			if (element != null)
 			{
 				return from subElement in element.SubElements
-				       let component = subElement.Getter.Get(entity)
+					   let component = subElement.Getter.Get(entity)
 							 from invalidValue in subElement.Validator.GetInvalidValues(component, activeTags).Concat(ValidateSubElements(subElement, component, activeTags))
-				       select invalidValue;
+					   select invalidValue;
 			}
 			return ClassValidator.EmptyInvalidValueArray;
 		}
@@ -371,7 +387,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <see cref="System.Type"/> of the <paramref name="entity"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual bool IsValid(object entity, params object[] activeTags)
+		public virtual bool IsValid(object entity, params object[] activeTags)
 		{
 			return !InternalValidate(entity, activeTags).Any();
 		}
@@ -385,7 +401,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <see cref="System.Type"/> of the <paramref name="entity"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual void AssertValid(object entity)
+		public virtual void AssertValid(object entity)
 		{
 			if (entity == null) return;
 			ValidatableElement element = GetElementOrNew(GuessEntityType(entity));
@@ -404,7 +420,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <typeparamref name="T"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual InvalidValue[] ValidatePropertyValue<T>(string propertyName, object value, params object[] activeTags)
+		public virtual InvalidValue[] ValidatePropertyValue<T>(string propertyName, object value, params object[] activeTags)
 		{
 			return ValidatePropertyValue(typeof(T), propertyName, value, activeTags);
 		}
@@ -421,7 +437,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <typeparamref name="TEntity"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual InvalidValue[] ValidatePropertyValue<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> expression, TProperty value, params object[] activeTags) where TEntity : class
+		public virtual InvalidValue[] ValidatePropertyValue<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> expression, TProperty value, params object[] activeTags) where TEntity : class
 		{
 			var propertyName = TypeUtils.DecodeMemberAccessExpression(expression).Name;
 			return ValidatePropertyValue(typeof (TEntity), propertyName, value, activeTags);
@@ -438,7 +454,7 @@ namespace NHibernate.Validator.Engine
 		/// If the <see cref="System.Type"/> of the <paramref name="entity"/> was never inspected, or
 		/// it was not configured, the <see cref="IClassValidator"/> will be automatic added to the engine.
 		/// </remarks>
-        public virtual InvalidValue[] ValidatePropertyValue(object entity, string propertyName, params object[] activeTags)
+		public virtual InvalidValue[] ValidatePropertyValue(object entity, string propertyName, params object[] activeTags)
 		{
 			if (entity == null)
 				return ClassValidator.EmptyInvalidValueArray;
@@ -456,7 +472,7 @@ namespace NHibernate.Validator.Engine
 			return element.Validator.GetInvalidValues(entity, propertyName, activeTags).ToArray();
 		}
 
-        public virtual InvalidValue[] ValidatePropertyValue<TEntity, TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> expression, params object[] activeTags) where TEntity : class
+		public virtual InvalidValue[] ValidatePropertyValue<TEntity, TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> expression, params object[] activeTags) where TEntity : class
 		{
 			return ValidatePropertyValue(entity, TypeUtils.DecodeMemberAccessExpression(expression).Name, activeTags);
 		}
@@ -469,7 +485,7 @@ namespace NHibernate.Validator.Engine
 		/// <param name="value">The value of the property.</param>
 		/// <param name="activeTags">Tags included in the validation.</param>
 		/// <returns>All the invalid values.</returns>
-        public virtual InvalidValue[] ValidatePropertyValue(System.Type entityType, string propertyName, object value, params object[] activeTags)
+		public virtual InvalidValue[] ValidatePropertyValue(System.Type entityType, string propertyName, object value, params object[] activeTags)
 		{
 			IClassValidator cv = GetElementOrNew(entityType).Validator;
 			if (activeTags != null && activeTags.Length == 0)
@@ -486,7 +502,7 @@ namespace NHibernate.Validator.Engine
 		/// <remarks>
 		/// Create an istance of <see cref="IClassValidator"/> for the given <typeparamref name="T"/>.
 		/// </remarks>
-        public virtual void AddValidator<T>()
+		public virtual void AddValidator<T>()
 		{
 			AddValidator<T>(null);
 		}
@@ -496,7 +512,7 @@ namespace NHibernate.Validator.Engine
 		/// </summary>
 		/// <typeparam name="T">The type of an entity.</typeparam>
 		/// <param name="inspector">Inspector for sub-elements</param>
-        public virtual void AddValidator<T>(IValidatableSubElementsInspector inspector)
+		public virtual void AddValidator<T>(IValidatableSubElementsInspector inspector)
 		{
 			AddValidator(typeof (T), inspector);
 		}
@@ -524,7 +540,7 @@ namespace NHibernate.Validator.Engine
 		/// <typeparam name="T">The type of an entity.</typeparam>
 		/// <returns>A acquaintance <see cref="IClassValidator"/> for the give type 
 		/// or null if the the <typeparamref name="T"/> was never used in the engine instance.</returns>
-        public virtual IClassValidator GetValidator<T>()
+		public virtual IClassValidator GetValidator<T>()
 		{
 			return GetValidator(typeof(T));
 		}
@@ -560,7 +576,7 @@ namespace NHibernate.Validator.Engine
 		/// <remarks>
 		/// In general a common application don't need to use this method but it can be useful for some kind of framework.
 		/// </remarks>
-        public virtual IClassValidator GetClassValidator(System.Type entityType)
+		public virtual IClassValidator GetClassValidator(System.Type entityType)
 		{
 			if (!entityType.ShouldNeedValidation())
 				return null;
