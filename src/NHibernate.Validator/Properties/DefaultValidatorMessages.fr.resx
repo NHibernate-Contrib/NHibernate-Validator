@@ -141,9 +141,6 @@
   <data name="validator.fileExists" xml:space="preserve">
     <value>Le fichier doit exister.</value>
   </data>
-  <data name="validator.enum" xml:space="preserve">
-    <value>doit correspondre à la définition de l'énumération</value>
-  </data>
   <data name="validator.future" xml:space="preserve">
     <value>doit être dans le futur</value>
   </data>
