@@ -95,11 +95,11 @@ namespace NHibernate.Validator.Engine
 		/// <param name="culture">The CultureInfo for the <paramref name="entityType"/>.</param>
 		/// <param name="validatorMode">Validator definition mode</param>
 		public ClassValidator(System.Type entityType, ResourceManager resourceManager, CultureInfo culture,
-							  ValidatorMode validatorMode)
+		                      ValidatorMode validatorMode)
 			: this(
 				entityType, new DefaultConstraintValidatorFactory(), new Dictionary<System.Type, IClassValidator>(),
 				new JITClassValidatorFactory(new DefaultConstraintValidatorFactory(), resourceManager, culture, null, validatorMode,
-											 new DefaultEntityTypeInspector())) {}
+				                             new DefaultEntityTypeInspector())) {}
 
 		/// <summary>
 		/// Create the validator engine for a particular entity class, using a resource bundle
@@ -114,14 +114,14 @@ namespace NHibernate.Validator.Engine
 		/// <param name="culture">The CultureInfo for the <paramref name="entityType"/>.</param>
 		/// <param name="validatorMode">Validator definition mode</param>
 		public ClassValidator(System.Type entityType, ResourceManager resourceManager, IMessageInterpolator userInterpolator,
-							  CultureInfo culture, ValidatorMode validatorMode)
+		                      CultureInfo culture, ValidatorMode validatorMode)
 			: this(
 				entityType, new DefaultConstraintValidatorFactory(), new Dictionary<System.Type, IClassValidator>(),
 				new JITClassValidatorFactory(new DefaultConstraintValidatorFactory(), resourceManager, culture, userInterpolator,
-											 validatorMode, new DefaultEntityTypeInspector())) {}
+				                             validatorMode, new DefaultEntityTypeInspector())) {}
 
 		internal ClassValidator(System.Type clazz, IConstraintValidatorFactory constraintValidatorFactory,
-								IDictionary<System.Type, IClassValidator> childClassValidators, IClassValidatorFactory factory)
+		                        IDictionary<System.Type, IClassValidator> childClassValidators, IClassValidatorFactory factory)
 		{
 			if (!clazz.ShouldNeedValidation())
 			{
@@ -209,16 +209,16 @@ namespace NHibernate.Validator.Engine
 					{
 						IValidator propertyValidator = CreateOrGetValidator(memberAttribute);
 
-						if (propertyValidator != null)
-						{
-							var tagable = memberAttribute as ITagableRule;
-							membersToValidate.Add(new Member
-													{
-														ValidatorDef =
-															new ValidatorDef(propertyValidator, tagable != null ? tagable.TagCollection : null),
-														Getter = member
-													});
-						}
+						if(propertyValidator == null)
+							continue;
+						
+						var tagable = memberAttribute as ITagableRule;
+						membersToValidate.Add(new Member
+						                    {
+						                    	ValidatorDef =
+						                    		new ValidatorDef(propertyValidator, tagable != null ? tagable.TagCollection : null),
+						                    		Getter = member
+						                    });
 					}
 				}
 			}
@@ -337,8 +337,8 @@ namespace NHibernate.Validator.Engine
 			if (valueEnum != null)
 			{
 				return TypeUtils.IsGenericDictionary(value.GetType())
-						? DictionaryInvalidValues(valueEnum, member, entity, circularityState, activeTags)
-						: CollectionInvalidValues(valueEnum, entity, member, circularityState, activeTags);
+				       	? DictionaryInvalidValues(valueEnum, member, entity, circularityState, activeTags)
+				       	: CollectionInvalidValues(valueEnum, entity, member, circularityState, activeTags);
 			}
 			else
 			{
@@ -373,8 +373,7 @@ namespace NHibernate.Validator.Engine
 			{
 				return EmptyInvalidValueArray;
 			}
-			return GetClassValidator(itemType).GetInvalidValues(item, circularityState, activeTags).WithParent(collectionOwner,
-																											   indexedPropName);
+			return GetClassValidator(itemType).GetInvalidValues(item, circularityState, activeTags).WithParent(collectionOwner, indexedPropName);
 		}
 
 		private IEnumerable<InvalidValue> DictionaryInvalidValues(IEnumerable dictionary, MemberInfo dictionaryMember, object ownerEntity, HashSet<object> circularityState, ICollection<object> activeTags)
@@ -424,7 +423,7 @@ namespace NHibernate.Validator.Engine
 					{
 						ValidatorClassAttribute validatorClass = null;
 						object[] attributesInTheAttribute = attribute.GetType().GetCustomAttributes(typeof (ValidatorClassAttribute),
-																									false);
+						                                                                            false);
 
 						if (attributesInTheAttribute.Length > 0)
 						{
@@ -568,9 +567,9 @@ namespace NHibernate.Validator.Engine
 
 
 		/// <summary>
-		/// Create validators based on hibernate metadata if appropriative validator not defined explicitly
+		/// Create validators based on hibernate metadata if an appropriative validator not defined explicitly
 		/// </summary>
-		/// <param name="properties">Hibernate metadata to analize</param>
+		/// <param name="properties">Hibernate metadata to analyze</param>
 		public void ConfigureFrom(IEnumerable<Property> properties)
 		{
 			foreach(var prop in properties)
@@ -580,31 +579,33 @@ namespace NHibernate.Validator.Engine
 				var propInfo = entityType.GetProperty(prop.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); 
 
 				if (!prop.IsNullable 
-					&& (!propTp.IsValueType
-						 || (propInfo != null && propInfo.PropertyType.IsGenericType && propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))))
+				     && (!propTp.IsValueType
+				         || (propInfo != null && propInfo.PropertyType.IsGenericType && propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))))
 				{
 					ConfigurePropValidatotBasedOnMapping<NotNullAttribute>(prop, null);
 				}
 
-				if (propTp== typeof(string))
+				if (propTp == typeof(string))
 				{
-					ConfigurePropValidatotBasedOnMapping<LengthAttribute>(prop
-						, (attr, col) => attr.Max = col.Length);
+					ConfigurePropValidatotBasedOnMapping<LengthAttribute>(
+						prop,
+						(attr, col) => attr.Max = col.Length);
 				}
 				else if (propTp.IsEnum)
 				{
 					ConfigurePropValidatotBasedOnMapping<EnumAttribute>(prop, null);
 				}
-				else if (   propTp == typeof(decimal) 
+				else if (   propTp == typeof(decimal)
 						 || propTp == typeof(double)
 						 || propTp == typeof(float)
 						)
 				{
-					ConfigurePropValidatotBasedOnMapping<DigitsAttribute>(prop
-						, (attr, col) => { 
-											attr.IntegerDigits = col.Precision - col.Scale;
-											attr.FractionalDigits = col.Scale;
-										 } );
+					ConfigurePropValidatotBasedOnMapping<DigitsAttribute>(
+					    prop,
+					    (attr, col) => { 
+					                    attr.IntegerDigits = col.Precision - col.Scale;
+					                    attr.FractionalDigits = col.Scale;
+					                   });
 				}
 				else
 				{
@@ -613,26 +614,28 @@ namespace NHibernate.Validator.Engine
 
 				//TODO:  Future -> IPropertyConstraint, but how to check this during Update on DB level? 
 
-				//TODO : Some extension mechanizm to allow used define rules to auto generate rules
-				//       with used defined validators (attributes) 
+				//TODO : Some extension mechanism to allow user define rules to auto generate rules
+				//       with user defined validators (attributes) 
 
 			}
 		}
 
 		private void ConfigureFromChildComponentMapping(Property prop, PropertyInfo propInfo)
 		{
-			ChildComponentConfigurer(prop, propInfo
-					, (p, pi) =>
+			ChildComponentConfigurer(prop, propInfo,
+					(p, pi) =>
 					{
 						var attrs = new Attribute[] { new ValidAttribute() };
 						CreateMemberAttributes(entityType.GetMember(p.Name).FirstOrDefault(), attrs);
 						CreateChildValidator(pi, attrs);
-					}
-					, (tp, component) =>
+					},
+					(tp, component) =>
 					{
-						if (!childClassValidators.ContainsKey(tp)) return;
+						if (!childClassValidators.ContainsKey(tp))
+						    return;
 						var cv = childClassValidators[tp] as ClassValidator;
-						if (cv == null) return;
+						if (cv == null)
+						    return;
 						cv.ConfigureFrom(component.PropertyIterator);
 				
 					}
@@ -699,9 +702,7 @@ namespace NHibernate.Validator.Engine
 		private void ConfigurePropValidatotBasedOnMapping<TAttr>(Property prop, Action<TAttr, Column> configAttribute)
 			where TAttr : Attribute, new()
 		{
-			var cons = GetMemberConstraints(prop.Name)
-						.Where(cns => cns is TAttr)
-						.ToArray();
+			var cons = GetMemberConstraints(prop.Name).Where(cns => cns is TAttr).ToArray();
 
 			if (cons.Length != 0)
 				return;
@@ -731,8 +732,7 @@ namespace NHibernate.Validator.Engine
 			});
 
 
-			CreateMemberAttributes(entityType.GetMember(prop.Name).FirstOrDefault()
-									, new Attribute[]{attr});
+			CreateMemberAttributes(entityType.GetMember(prop.Name).FirstOrDefault(), new Attribute[]{attr});
 		}
 
 		/// <summary>
@@ -777,12 +777,13 @@ namespace NHibernate.Validator.Engine
 						return; 
 				}
 
-				ChildComponentConfigurer(property, childGetter
-					, (p, pi) => { }
-					, (tp, component) =>
+				ChildComponentConfigurer(property, childGetter,
+					  (p, pi) => {},
+					  (tp, component) =>
 					{
 						IClassValidator componentValidator;
-						if (!childClassValidators.TryGetValue(tp, out componentValidator)) return;
+						if (!childClassValidators.TryGetValue(tp, out componentValidator))
+							return;
 
 						var componentClassValidator = componentValidator as ClassValidator;
 						if (componentClassValidator == null) 
@@ -864,7 +865,7 @@ namespace NHibernate.Validator.Engine
 				throw new TargetException(
 					string.Format("The property or field '{0}' was not found in class {1}", memberName, entityType.FullName));
 			}
-			
+
 			return from mtv in membersValidators
 				   let member = mtv.Getter
 				   where NHibernateHelper.IsPropertyInitialized(entity, member.Name)
@@ -883,17 +884,17 @@ namespace NHibernate.Validator.Engine
 			var memberValidators = membersToValidate.Where(m => m.Getter.Name.Equals(propertyName) && IsValidationNeededByTags(activeTags, m.ValidatorDef.Tags)).ToArray();
 			if (memberValidators.Length == 0)
 			{
-				throw new TargetException(string.Format("The property or field '{0}' was not found in class {1}", propertyName,
-																								entityType.FullName));
+				throw new TargetException(string.Format("The property or field '{0}' was not found in class {1}", 
+				                                        propertyName, entityType.FullName));
 			}
 			return from member in memberValidators
 				   let validator = member.ValidatorDef.Validator
 				   let constraintContext =
-					new ConstraintValidatorContext(propertyName, defaultInterpolator.GetAttributeMessage(validator))
+				   	new ConstraintValidatorContext(propertyName, defaultInterpolator.GetAttributeMessage(validator))
 				   where !validator.IsValid(value, constraintContext)
 				   from invalidValue in
-					new InvalidMessageTransformer(constraintContext, activeTags, entityType, propertyName, value, null,
-												  member.ValidatorDef, defaultInterpolator, userInterpolator).Transform()
+				   	new InvalidMessageTransformer(constraintContext, activeTags, entityType, propertyName, value, null,
+				                                  member.ValidatorDef, defaultInterpolator, userInterpolator).Transform()
 				   select invalidValue;
 		}
 
@@ -972,9 +973,9 @@ namespace NHibernate.Validator.Engine
 			private readonly JITClassMappingFactory classMappingFactory;
 
 			public JITClassValidatorFactory(IConstraintValidatorFactory constraintValidatorFactory,
-											ResourceManager resourceManager, CultureInfo culture,
-											IMessageInterpolator userInterpolator, ValidatorMode validatorMode,
-											IEntityTypeInspector entityTypeInspector)
+			                                ResourceManager resourceManager, CultureInfo culture,
+			                                IMessageInterpolator userInterpolator, ValidatorMode validatorMode,
+			                                IEntityTypeInspector entityTypeInspector)
 				: base(constraintValidatorFactory, resourceManager, culture, userInterpolator, validatorMode, entityTypeInspector)
 			{
 				classMappingFactory = new JITClassMappingFactory();

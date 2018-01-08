@@ -51,9 +51,9 @@ namespace NHibernate.Validator.Engine
 		void Apply(PersistentClass persistentClass);
 
 		/// <summary>
-		/// Create validators based on hibernate metadata if appropriative validator not defined explicitly
+		/// Create validators based on hibernate metadata if an appropriative validator not defined explicitly
 		/// </summary>
-		/// <param name="properties">Hibernate metadata to analize</param>
+		/// <param name="properties">Hibernate metadata to analyze</param>
 		void ConfigureFrom(IEnumerable<Property> properties);
 
 		/// <summary>

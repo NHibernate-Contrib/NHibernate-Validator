@@ -19,7 +19,7 @@ namespace NHibernate.Validator.Cfg
 		public const string ApplyToDDL = "apply_to_ddl";
 
 		/// <summary>
-		/// Auto generate validators from NHib mapping if there no compatible validators implicitly defined
+		/// Auto generate validators from NHib mapping if there are no compatible validators implicitly defined
 		/// </summary>
 		public const string AutoGenerateFromMapping = "auto_generate_from_mapping";
 
