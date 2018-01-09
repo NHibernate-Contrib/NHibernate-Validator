@@ -10,7 +10,7 @@ namespace NHibernate.Validator.Engine
 		private static readonly IInternalLogger Log = LoggerProvider.LoggerFor(typeof(ClassValidatorExtension));
 
 		/// <summary>
-		/// Create validators based on hibernate metadata if an appropriative validator not defined explicitly.
+		/// Create validators based on hibernate metadata if an appropriative validator is not defined explicitly.
 		/// </summary>
 		/// <param name="validator">The validator to configure.</param>
 		/// <param name="properties">Hibernate metadata to analyze.</param>
