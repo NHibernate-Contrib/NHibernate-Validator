@@ -603,7 +603,9 @@ namespace NHibernate.Validator.Engine
 				{
 					ConfigurePropertyValidatorBasedOnMapping(
 						prop,
-						col => new DigitsAttribute { IntegerDigits = col.Precision - col.Scale, FractionalDigits = col.Scale });
+						col => !col.IsPrecisionDefined() || !col.IsScaleDefined()
+							? null
+							: new DigitsAttribute { IntegerDigits = col.Precision - col.Scale, FractionalDigits = col.Scale });
 				}
 				else
 				{
