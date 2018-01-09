@@ -46,7 +46,7 @@ namespace NHibernate.Validator.Engine
 			new ConcurrentDictionary<System.Type, ValidatableElement>(new Dictionary<System.Type, ValidatableElement>());
 		private static readonly ValidatableElement AlwaysValidPlaceHolder = new ValidatableElement(typeof (object), new EmptyClassValidator());
 
-		private class EmptyClassValidator: IClassValidator
+		internal class EmptyClassValidator: IClassValidator
 		{
 			public bool HasValidationRules
 			{
@@ -79,7 +79,6 @@ namespace NHibernate.Validator.Engine
 			public void ConfigureFrom(IEnumerable<Property> properties)
 			{
 			}
-
 
 			public IEnumerable<Attribute> GetMemberConstraints(string propertyName)
 			{
