@@ -1,55 +1,48 @@
 ﻿using System;
 using System.Collections;
 using System.Linq;
-
 using NHibernate.Mapping;
 using NHibernate.Validator.Cfg;
 using NHibernate.Validator.Constraints;
 using NHibernate.Validator.Engine;
 using NHibernate.Validator.Event;
 using NHibernate.Validator.Exceptions;
-
 using NUnit.Framework;
-using SharpTestsEx;
 
 namespace NHibernate.Validator.Tests.Integration
 {
 	[TestFixture]
-	class FromNhibMetadataFixture : PersistenceTest
+	public class FromNhibMetadataFixture : PersistenceTest
 	{
+		protected override IList Mappings => new[] { "Integration.FromNhibMetadata.hbm.xml" };
 
-		protected override IList Mappings
-		{
-			get
-			{
-				return new string[]
-					{
-						"Integration.FromNhibMetadata.hbm.xml",
-					};
-			}
-		}
+		private ISharedEngineProvider _fortest;
 
-		protected ISharedEngineProvider fortest;
 		protected override void Configure(NHibernate.Cfg.Configuration configuration)
 		{
 			// The ValidatorInitializer and the ValidateEventListener share the same engine
 
 			// Initialize the SharedEngine
-			fortest = new NHibernateSharedEngineProvider();
-			Cfg.Environment.SharedEngineProvider = fortest;
-			ValidatorEngine ve = Cfg.Environment.SharedEngineProvider.GetEngine();
+			_fortest = new NHibernateSharedEngineProvider();
+			Cfg.Environment.SharedEngineProvider = _fortest;
+			var ve = Cfg.Environment.SharedEngineProvider.GetEngine();
 			ve.Clear();
-			XmlConfiguration nhvc = new XmlConfiguration();
-			nhvc.Properties[Cfg.Environment.ApplyToDDL] = "true";
-			nhvc.Properties[Cfg.Environment.AutoGenerateFromMapping] = "true";
-			nhvc.Properties[Cfg.Environment.AutoregisterListeners] = "true";
-			nhvc.Properties[Cfg.Environment.ValidatorMode] = "UseAttribute";
-			nhvc.Properties[Cfg.Environment.MessageInterpolatorClass] = typeof(PrefixMessageInterpolator).AssemblyQualifiedName;
-			
+			var nhvc = new XmlConfiguration
+			{
+				Properties =
+				{
+					[Cfg.Environment.ApplyToDDL] = "true",
+					[Cfg.Environment.AutoGenerateFromMapping] = "true",
+					[Cfg.Environment.AutoregisterListeners] = "true",
+					[Cfg.Environment.ValidatorMode] = "UseAttribute",
+					[Cfg.Environment.MessageInterpolatorClass] = typeof(PrefixMessageInterpolator).AssemblyQualifiedName
+				}
+			};
+
 			ve.Configure(nhvc);
 			//ve.IsValid(new HibernateAnnotationIntegrationFixture.AnyClass());// add the element to engine for test
 
-			ValidatorInitializer.Initialize(configuration);
+			configuration.Initialize();
 		}
 
 		protected override void OnTestFixtureTearDown()
@@ -58,17 +51,17 @@ namespace NHibernate.Validator.Tests.Integration
 			Cfg.Environment.SharedEngineProvider = null;
 		}
 
-		public void CleanupData()
+		protected override void OnTearDown()
 		{
-			ISession s = OpenSession();
-			ITransaction txn = s.BeginTransaction();
+			base.OnTearDown();
 
-			s.Delete("from FromNhibMetadata");
-
-			txn.Commit();
-			s.Close();
+			using (var s = OpenSession())
+			using (var txn = s.BeginTransaction())
+			{
+				s.Delete("from FromNhibMetadata");
+				txn.Commit();
+			}
 		}
-
 
 		[Test]
 		public void ApplyFromStringColumn()
@@ -80,12 +73,15 @@ namespace NHibernate.Validator.Tests.Integration
 
 			var sva = vl.GetMemberConstraints("StrValue").FirstOrDefault();
 
-			Assert.IsInstanceOf<LengthAttribute>(sva, "LengthAttribute should be generated from Nhib metadata for StrValue property");
+			Assert.That(sva, Is.Not.Null);
+			Assert.That(
+				sva,
+				Is.InstanceOf<LengthAttribute>(),
+				"LengthAttribute should be generated from Nhib metadata for StrValue property");
 
-			var sval = sva as LengthAttribute;
+			var sval = (LengthAttribute) sva;
 
-			Assert.AreEqual(5, sval.Max);
-
+			Assert.That(sval.Max, Is.EqualTo(5));
 		}
 
 		[Test]
@@ -96,10 +92,11 @@ namespace NHibernate.Validator.Tests.Integration
 
 			var sva = vl.GetMemberConstraints("DateNotNull").FirstOrDefault();
 
-			Assert.IsInstanceOf<NotNullAttribute>(sva, "NotNullAttribute should be generated from NHib metadata for DateNotNull property");
-
+			Assert.That(
+				sva,
+				Is.InstanceOf<NotNullAttribute>(),
+				"NotNullAttribute should be generated from NHib metadata for DateNotNull property");
 		}
-
 
 		[Test]
 		public void ApplyFromDecimalColumn()
@@ -109,13 +106,16 @@ namespace NHibernate.Validator.Tests.Integration
 
 			var sva = vl.GetMemberConstraints("Dec").FirstOrDefault();
 
-			Assert.IsInstanceOf<DigitsAttribute>(sva, "DigitsAttribute should be generated from NHib metadata for Dec property");
+			Assert.That(sva, Is.Not.Null);
+			Assert.That(
+				sva,
+				Is.InstanceOf<DigitsAttribute>(),
+				"DigitsAttribute should be generated from NHib metadata for Dec property");
 
-			var svad = sva as DigitsAttribute;
+			var svad = (DigitsAttribute) sva;
 
-			Assert.AreEqual(3, svad.IntegerDigits);
-			Assert.AreEqual(2, svad.FractionalDigits);
-
+			Assert.That(svad.IntegerDigits, Is.EqualTo(3));
+			Assert.That(svad.FractionalDigits, Is.EqualTo(2));
 		}
 
 		[Test]
@@ -129,10 +129,11 @@ namespace NHibernate.Validator.Tests.Integration
 			Assert.IsInstanceOf<EnumAttribute>(sva, "EnumAttribute should be generated from NHib metadata for EnumV property");
 
 			var classMapping = cfg.GetClassMapping(typeof(FromNhibMetadata));
-			IEnumerator ie = classMapping.GetProperty("EnumV").ColumnIterator.GetEnumerator();
-			ie.MoveNext();
-			var serialColumn = (Column)ie.Current;
-			Assert.AreEqual("EnumV in (0, 1)", serialColumn.CheckConstraint, "Validator annotation should generate valid check for Enums");
+			var serialColumn = (Column) classMapping.GetProperty("EnumV").ColumnIterator.Single();
+			Assert.That(
+				serialColumn.CheckConstraint,
+				Is.EqualTo("EnumV in (0, 1)"),
+				"Validator annotation should generate valid check for Enums");
 		}
 
 		[Test]
@@ -141,260 +142,207 @@ namespace NHibernate.Validator.Tests.Integration
 			var ve = Cfg.Environment.SharedEngineProvider.GetEngine();
 			var vl = ve.GetValidator<FromNhibMetadata>();
 
-			Assert.IsTrue(vl.HasValidationRules, "Validation rules must be created from NHib metadata");
+			Assert.That(vl.HasValidationRules, Is.True, "Validation rules must be created from NHib metadata");
 
 			var sva = vl.GetMemberConstraints("Cmp").FirstOrDefault();
 
-			Assert.IsInstanceOf<ValidAttribute>(sva, "ValidAttribute should be generated from NHib metadata for Component property");
+			Assert.That(
+				sva,
+				Is.InstanceOf<ValidAttribute>(),
+				"ValidAttribute should be generated from NHib metadata for Component property");
 
-			var vli = vl as IClassValidatorImplementor;
+			var vli = (IClassValidatorImplementor) vl;
 			vl = vli.ChildClassValidators[typeof(Cmp1)];
 
 			sva = vl.GetMemberConstraints("CStrValue").FirstOrDefault();
 
-			Assert.IsInstanceOf<LengthAttribute>(sva, "LengthAttribute should be generated from NHib metadata for Cmp1.CStrValue property");
-			var sval = sva as LengthAttribute;
+			Assert.That(sva, Is.Not.Null);
+			Assert.That(
+				sva,
+				Is.InstanceOf<LengthAttribute>(),
+				"LengthAttribute should be generated from NHib metadata for Cmp1.CStrValue property");
+			var sval = (LengthAttribute) sva;
 
-			Assert.AreEqual(3, sval.Max);
+			Assert.That(sval.Max, Is.EqualTo(3));
 
 			vl = vli.ChildClassValidators[typeof(Cmp2)];
 
 			sva = vl.GetMemberConstraints("CStrValue1").FirstOrDefault();
 
-			Assert.IsInstanceOf<LengthAttribute>(sva, "LengthAttribute should be generated from NHib metadata for Cmp2.CStrValue1 property");
-			sval = sva as LengthAttribute;
+			Assert.That(
+				sva,
+				Is.InstanceOf<LengthAttribute>(),
+				"LengthAttribute should be generated from NHib metadata for Cmp2.CStrValue1 property");
+			sval = (LengthAttribute) sva;
 
-			Assert.AreEqual(5, sval.Max);
+			Assert.That(sval.Max, Is.EqualTo(5));
 		}
-
-
 
 		[Test]
 		public void ApplyConstraintsOnEmbededeComponentsColumns()
 		{
 			var classMapping = cfg.GetClassMapping(typeof(FromNhibMetadata));
-			var ie = classMapping.GetProperty("Cmp").ColumnIterator.GetEnumerator();
-			ie.MoveNext();
-			var col = (Column)ie.Current;
-			while (col.Name != "CEnumV")
-			{
-				ie.MoveNext();
-				col = (Column)ie.Current;
-			}
-			Assert.AreEqual("CEnumV in (0, 1)", col.CheckConstraint, "Validator annotation should generate valid check for CEnumV column (property of embedded component)");
+			var col = classMapping.GetProperty("Cmp").ColumnIterator.Cast<Column>().Single(c => c.Name == "CEnumV");
+
+			Assert.That(
+				col.CheckConstraint,
+				Is.EqualTo("CEnumV in (0, 1)"),
+				"Validator annotation should generate valid check for CEnumV column (property of embedded component)");
 
 			var prop = classMapping.GetProperty("Cmps2");
-			var col1 = prop.Value as Mapping.Collection;
-			var cmp = col1.Element as Component;
+			var col1 = (Mapping.Collection) prop.Value;
+			var cmp = (Component) col1.Element;
 
-			ie = cmp.ColumnIterator.GetEnumerator();
-			ie.MoveNext();
-			col = (Column)ie.Current;
-			while (col.Name != "CEnumV1")
-			{
-				ie.MoveNext();
-				col = (Column)ie.Current;
-			}
-			Assert.AreEqual("CEnumV1 in (0, 1)", col.CheckConstraint, "Validator annotation should generate valid check for CEnumV1 column (property of embedded component in collection)");
+			col = cmp.ColumnIterator.Cast<Column>().Single(c => c.Name == "CEnumV1");
+
+			Assert.That(
+				col.CheckConstraint,
+				Is.EqualTo("CEnumV1 in (0, 1)"),
+				"Validator annotation should generate valid check for CEnumV1 column (property of embedded component in collection)");
 		}
-
 
 		[Test]
 		public void Events()
 		{
-			ISession s;
-			ITransaction tx;
+			var x = new FromNhibMetadata
+			{
+				Id = 1,
+				StrValue = "123456",
+				DateNotNull = DateTime.Today,
+				Dec = 1234.567M,
+				EnumV = (En1) 42
+			};
 
-			var x = new FromNhibMetadata();
-			x.Id = 1;
-
-			x.StrValue = "123456";
-			x.DateNotNull = DateTime.Today;
 			//x.DateNotNull = null; //!! NHib check not-null itself before integrated validators and throw exception
-									//   Why it does not check the at еру same place Length, Precision And scale and so on, if all this known from it configuration? 
-			x.Dec = 1234.567M;
-			x.EnumV = (En1)42;
+			// Why it does not check at the same place Length, Precision And scale and so on, if all this known from it configuration?
 
-
-			s = OpenSession();
-			tx = s.BeginTransaction();
-			try
+			using (var s = OpenSession())
+			using (var tx = s.BeginTransaction())
 			{
-				s.Save(x);
-				tx.Commit();
-				Assert.Fail("entity should have been validated");
-			}
-			catch (InvalidStateException e)
-			{
-				//success
-				var invalidValues = e.GetInvalidValues();
-				invalidValues.Should().Have.Count.EqualTo(3);
-			}
-			finally
-			{
-				if (tx != null && !tx.WasCommitted)
-				{
-					tx.Rollback();
-				}
-				s.Close();
+				Assert.That(
+					() =>
+					{
+						s.Save(x);
+						tx.Commit();
+					},
+					Throws.InstanceOf<InvalidStateException>()
+						  .And.Property(nameof(InvalidStateException.InvalidValues)).Length.EqualTo(3),
+					"Saved entity should have raised 3 validation errors");
 			}
 
-
-			x.DateNotNull = null; //But if we will call validators before SavingToNHib Null will be chacked
+			x.DateNotNull = null; //But if we will call validators before SavingToNHib Null will be checked
 			var ve = Cfg.Environment.SharedEngineProvider.GetEngine();
 			var ivals = ve.Validate(x);
-			ivals.Should().Have.Count.EqualTo(4);
-
+			Assert.That(ivals, Has.Length.EqualTo(4), "Unexpected validation error count for first entity with null date");
 
 			// Don't throw exception if it is valid
-			x = new FromNhibMetadata();
-			x.Id = 2;
-
-			x.StrValue = "12345";
-			x.DateNotNull = DateTime.Today;
-			x.Dec = 123.45M;
-			x.EnumV = En1.v1;
-
-			try
+			x = new FromNhibMetadata
 			{
-				using (s = OpenSession())
-				using (ITransaction t = s.BeginTransaction())
-				{
-					s.Save(x);
-					t.Commit();
-				}
-			}
-			catch (InvalidStateException)
+				Id = 2,
+				StrValue = "12345",
+				DateNotNull = DateTime.Today,
+				Dec = 123.45M,
+				EnumV = En1.v1
+			};
+
+			using (var s = OpenSession())
+			using (var t = s.BeginTransaction())
 			{
-				Assert.Fail("Valid entity cause InvalidStateException");
+				Assert.That(
+					() =>
+					{
+						s.Save(x);
+						t.Commit();
+					},
+					Throws.Nothing,
+					"Valid entity caused exception on save");
 			}
 
 			// Update check
-			try
-			{
-				using (s = OpenSession())
-				using (ITransaction t = s.BeginTransaction())
-				{
-					var saved = s.Get<FromNhibMetadata>(2);
-					saved.StrValue = "123456";
-					//saved.DateNotNull = null;
-					saved.DateNotNull = DateTime.Now;
-					saved.Dec = 5678.900M;
-					saved.EnumV = (En1)66;
-
-					s.Update(saved);
-					t.Commit();
-					Assert.Fail("entity should have been validated");
-				}
-			}
-			catch (InvalidStateException e)
-			{
-				e.GetInvalidValues().Should().Have.Count.EqualTo(3);
-			}
-
-			try
-			{
-				using (s = OpenSession())
-				using (ITransaction t = s.BeginTransaction())
-				{
-					var saved = s.Get<FromNhibMetadata>(2);
-					saved.StrValue = "123";
-					saved.DateNotNull = DateTime.Now;
-					saved.Dec = 876.54M;
-					saved.EnumV = En1.v2;
-
-					s.Update(saved);
-					t.Commit();
-				}
-			}
-			catch (InvalidStateException)
-			{
-				Assert.Fail("Valid entity cause InvalidStateException");
-			}
-
-			// clean up
-			using (s = OpenSession())
-			using (ITransaction t = s.BeginTransaction())
+			using (var s = OpenSession())
+			using (var t = s.BeginTransaction())
 			{
 				var saved = s.Get<FromNhibMetadata>(2);
-				s.Delete(saved);
-				t.Commit();
+				saved.StrValue = "123456";
+				//saved.DateNotNull = null;
+				saved.DateNotNull = DateTime.Now;
+				saved.Dec = 5678.900M;
+				saved.EnumV = (En1) 66;
+
+				Assert.That(
+					() => t.Commit(),
+					Throws.InstanceOf<InvalidStateException>()
+						  .And.Property(nameof(InvalidStateException.InvalidValues)).Length.EqualTo(3),
+					"Updated entity should have raised 3 validation errors");
 			}
 
+			using (var s = OpenSession())
+			using (var t = s.BeginTransaction())
+			{
+				var saved = s.Get<FromNhibMetadata>(2);
+				saved.StrValue = "123";
+				saved.DateNotNull = DateTime.Now;
+				saved.Dec = 876.54M;
+				saved.EnumV = En1.v2;
+
+				Assert.That(
+					() => t.Commit(),
+					Throws.Nothing,
+					"Valid entity caused exception on update");
+			}
 		}
 
 		[Test]
 		public void EventsComponent()
 		{
-			var x = new FromNhibMetadata();
-			x.Id = 3;
-
-			x.StrValue = "12345";
-			x.DateNotNull = DateTime.Today;
-			x.Dec = 123.45M;
-			x.EnumV = En1.v1;
-
-			x.Cmp = new Cmp1();
-			x.Cmp.CEnumV = (En1)66;
-			x.Cmp.CStrValue = "1234";
-			x.Cmps2.Add(new Cmp2 { CEnumV1 = (En1)66, CStrValue1 = "12345XXXX" }); 
-
-			var s = OpenSession();
-			var tx = s.BeginTransaction();
-			try
+			var x = new FromNhibMetadata
 			{
-				s.Save(x);
-				tx.Commit();
-				Assert.Fail("entity should have been validated");
-			}
-			catch (InvalidStateException e)
-			{
-				//success
-				var invalidValues = e.GetInvalidValues();
-				invalidValues.Should().Have.Count.EqualTo(4);
-			}
-			finally
-			{
-				if (tx != null && !tx.WasCommitted)
+				Id = 3,
+				StrValue = "12345",
+				DateNotNull = DateTime.Today,
+				Dec = 123.45M,
+				EnumV = En1.v1,
+				Cmp = new Cmp1
 				{
-					tx.Rollback();
+					CEnumV = (En1) 66,
+					CStrValue = "1234"
 				}
-				s.Close();
+			};
+
+			x.Cmps2.Add(new Cmp2 { CEnumV1 = (En1) 66, CStrValue1 = "12345XXXX" });
+
+			using (var s = OpenSession())
+			using (var tx = s.BeginTransaction())
+			{
+				Assert.That(
+					() =>
+					{
+						s.Save(x);
+						tx.Commit();
+					},
+					Throws.InstanceOf<InvalidStateException>()
+					      .And.Property(nameof(InvalidStateException.InvalidValues)).Length.EqualTo(4),
+					"Saved entity should have raised 4 validation errors");
 			}
 
 			x.Cmps2.Clear();
 			x.Cmp.CEnumV = En1.v1;
 			x.Cmp.CStrValue = "123";
 
-			x.Cmps2.Add(new Cmp2 {CEnumV1 = En1.v2, CStrValue1 = "12345"}); 
+			x.Cmps2.Add(new Cmp2 { CEnumV1 = En1.v2, CStrValue1 = "12345" });
 
-			try
+			using (var s = OpenSession())
+			using (var t = s.BeginTransaction())
 			{
-				using (s = OpenSession())
-				using (ITransaction t = s.BeginTransaction())
-				{
-					s.Save(x);
-					t.Commit();
-				}
+				Assert.That(
+					() =>
+					{
+						s.Save(x);
+						t.Commit();
+					},
+					Throws.Nothing,
+					"Valid entity caused exception on save");
 			}
-			catch (InvalidStateException)
-			{
-				Assert.Fail("Valid entity cause InvalidStateException");
-			}
-
-			// clean up
-			using (s = OpenSession())
-			using (ITransaction t = s.BeginTransaction())
-			{
-				var saved = s.Get<FromNhibMetadata>(3);
-				s.Delete(saved);
-				t.Commit();
-			}
-
-
 		}
-
-
-
 	}
 }
