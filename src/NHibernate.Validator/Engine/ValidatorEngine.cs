@@ -106,7 +106,7 @@ namespace NHibernate.Validator.Engine
 			constraintValidatorFactory = Environment.ConstraintValidatorFactory ?? new DefaultConstraintValidatorFactory();
 			entityTypeInspector = new DefaultEntityTypeInspector();
 			factory = new StateFullClassValidatorFactory(constraintValidatorFactory, null, null, null, ValidatorMode.UseAttribute,
-														 entityTypeInspector);
+			                                             entityTypeInspector);
 		}
 
 		/// <summary>
@@ -134,8 +134,7 @@ namespace NHibernate.Validator.Engine
 		}
 
 		/// <summary>
-		/// Generate validators from NHib mapping, if there is no defined validators
-		/// implicitly defined 
+		/// Generate validators from NHib mapping, if there is no validators already defined.
 		/// </summary>
 		public virtual bool AutoGenerateFromMapping
 		{
@@ -202,7 +201,7 @@ namespace NHibernate.Validator.Engine
 			if (configReader == null)
 			{
 				throw new ValidatorConfigurationException("Could not configure NHibernate.Validator.",
-														  new ArgumentNullException("configReader"));
+				                                          new ArgumentNullException("configReader"));
 			}
 
 			INHVConfiguration nhvc = new XmlConfiguration(configReader);
@@ -237,7 +236,7 @@ namespace NHibernate.Validator.Engine
 			if (config == null)
 			{
 				throw new ValidatorConfigurationException("Could not configure NHibernate.Validator.",
-														  new ArgumentNullException("config"));
+				                                          new ArgumentNullException("config"));
 			}
 
 			Clear();
@@ -247,7 +246,7 @@ namespace NHibernate.Validator.Engine
 			autoRegisterListeners = PropertiesHelper.GetBoolean(Environment.AutoregisterListeners, config.Properties, true);
 			defaultMode =
 				CfgXmlHelper.ValidatorModeConvertFrom(PropertiesHelper.GetString(Environment.ValidatorMode, config.Properties,
-																				 string.Empty));
+				                                                                 string.Empty));
 			interpolator =
 				GetImplementation<IMessageInterpolator>(
 					PropertiesHelper.GetString(Environment.MessageInterpolatorClass, config.Properties, string.Empty),
@@ -256,10 +255,10 @@ namespace NHibernate.Validator.Engine
 			if (Environment.ConstraintValidatorFactory == null)
 			{
 				constraintValidatorFactory = GetImplementation<IConstraintValidatorFactory>(
-												PropertiesHelper.GetString(Environment.ConstraintValidatorFactoryClass,
-																		   config.Properties,
-																		   string.Empty),
-												"Constraint Validator Factory") ?? new DefaultConstraintValidatorFactory();
+					PropertiesHelper.GetString(Environment.ConstraintValidatorFactoryClass,
+					                           config.Properties,
+					                           string.Empty),
+					"Constraint Validator Factory") ?? new DefaultConstraintValidatorFactory();
 			}
 			else
 			{
@@ -279,7 +278,7 @@ namespace NHibernate.Validator.Engine
 
 			ResourceManager customResourceManager = null;
 			var customResourceManagerBaseName = PropertiesHelper.GetString(Environment.CustomResourceManager, config.Properties,
-																		   null);
+			                                                               null);
 			if (!string.IsNullOrEmpty(customResourceManagerBaseName))
 			{
 				var resourceAndAssembly = TypeNameParser.Parse(customResourceManagerBaseName);
@@ -295,15 +294,15 @@ namespace NHibernate.Validator.Engine
 			}
 
 			factory = new StateFullClassValidatorFactory(constraintValidatorFactory, customResourceManager, null, interpolator, defaultMode,
-														 entityTypeInspector);
+			                                             entityTypeInspector);
 
 			// UpLoad Mappings
 			if(mappingLoader == null)
 			{
 				// Configured or Default loader (XmlMappingLoader)
 				mappingLoader = GetImplementation<IMappingLoader>(
-									PropertiesHelper.GetString(Environment.MappingLoaderClass, config.Properties, string.Empty),
-									"mapping loader") ?? new XmlMappingLoader();
+					PropertiesHelper.GetString(Environment.MappingLoaderClass, config.Properties, string.Empty),
+					"mapping loader") ?? new XmlMappingLoader();
 			}
 			mappingLoader.LoadMappings(config.Mappings);
 			Initialize(mappingLoader);
@@ -367,9 +366,9 @@ namespace NHibernate.Validator.Engine
 			if (element != null)
 			{
 				return from subElement in element.SubElements
-					   let component = subElement.Getter.Get(entity)
-							 from invalidValue in subElement.Validator.GetInvalidValues(component, activeTags).Concat(ValidateSubElements(subElement, component, activeTags))
-					   select invalidValue;
+				       let component = subElement.Getter.Get(entity)
+				       from invalidValue in subElement.Validator.GetInvalidValues(component, activeTags).Concat(ValidateSubElements(subElement, component, activeTags))
+				       select invalidValue;
 			}
 			return ClassValidator.EmptyInvalidValueArray;
 		}

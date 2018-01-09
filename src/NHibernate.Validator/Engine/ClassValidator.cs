@@ -2,12 +2,12 @@ using System;
 using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Globalization;
 using System.Reflection;
 using System.Resources;
 using System.Runtime.Serialization;
 using System.Security;
+using NHibernate.Collection;
 using NHibernate.Mapping;
 using NHibernate.Properties;
 using NHibernate.Validator.Constraints;
@@ -15,8 +15,8 @@ using NHibernate.Validator.Exceptions;
 using NHibernate.Validator.Interpolator;
 using NHibernate.Validator.Mappings;
 using NHibernate.Validator.Util;
-using Environment=NHibernate.Validator.Cfg.Environment;
-using NHibernate.Collection;
+
+using Environment = NHibernate.Validator.Cfg.Environment;
 
 namespace NHibernate.Validator.Engine
 {
@@ -209,16 +209,17 @@ namespace NHibernate.Validator.Engine
 					{
 						IValidator propertyValidator = CreateOrGetValidator(memberAttribute);
 
-						if(propertyValidator == null)
+						if (propertyValidator == null)
 							continue;
-						
+
 						var tagable = memberAttribute as ITagableRule;
-						membersToValidate.Add(new Member
-						                    {
-						                    	ValidatorDef =
-						                    		new ValidatorDef(propertyValidator, tagable != null ? tagable.TagCollection : null),
-						                    		Getter = member
-						                    });
+						membersToValidate.Add(
+							new Member
+							{
+								ValidatorDef =
+									new ValidatorDef(propertyValidator, tagable?.TagCollection),
+									Getter = member
+							});
 					}
 				}
 			}
@@ -285,34 +286,37 @@ namespace NHibernate.Validator.Engine
 
 		private IEnumerable<InvalidValue> GetChildrenInvalidValues(object entity, string memberName, HashSet<object> circularityState, ICollection<object> activeTags)
 		{
-			return from member in childGetters
-				   where memberName.Equals(member.Name) && NHibernateHelper.IsPropertyInitialized(entity, member.Name)
-				   let value = TypeUtils.GetMemberValue(entity, member)
-				   where value != null && (NHibernateHelper.IsInitialized(value) || value is AbstractPersistentCollection)
-				   from invalidValue in ChildInvalidValues(value, entity, member, circularityState, activeTags)
-				   select invalidValue;
+			return
+				from member in childGetters
+				where memberName.Equals(member.Name) && NHibernateHelper.IsPropertyInitialized(entity, member.Name)
+				let value = TypeUtils.GetMemberValue(entity, member)
+				where value != null && (NHibernateHelper.IsInitialized(value) || value is AbstractPersistentCollection)
+				from invalidValue in ChildInvalidValues(value, entity, member, circularityState, activeTags)
+				select invalidValue;
 		}
 
 		private IEnumerable<InvalidValue> GetChildrenInvalidValues(object entity, HashSet<object> circularityState, ICollection<object> activeTags)
 		{
-			return from member in childGetters
-				   where NHibernateHelper.IsPropertyInitialized(entity, member.Name)
-				   let value = TypeUtils.GetMemberValue(entity, member)
-				   where value != null && (NHibernateHelper.IsInitialized(value) || value is AbstractPersistentCollection)
-				   from invalidValue in ChildInvalidValues(value, entity, member, circularityState, activeTags)
-				   select invalidValue;
+			return
+				from member in childGetters
+				where NHibernateHelper.IsPropertyInitialized(entity, member.Name)
+				let value = TypeUtils.GetMemberValue(entity, member)
+				where value != null && (NHibernateHelper.IsInitialized(value) || value is AbstractPersistentCollection)
+				from invalidValue in ChildInvalidValues(value, entity, member, circularityState, activeTags)
+				select invalidValue;
 		}
 
 		private IEnumerable<InvalidValue> EntityInvalidValues(object entity, ICollection<object> activeTags)
 		{
-			return from validatorDef in entityValidators.Where(ev => IsValidationNeededByTags(activeTags, ev.Tags))
-						 let validator = validatorDef.Validator
-						 let constraintContext = new ConstraintValidatorContext(null, defaultInterpolator.GetAttributeMessage(validator))
-						 where !validator.IsValid(entity, constraintContext)
-						 select new InvalidMessageTransformer(constraintContext, activeTags, entityType, null, entity, entity, validatorDef, defaultInterpolator, userInterpolator)
-							 into invalidMessageTransformer
-							 from invalidValue in invalidMessageTransformer.Transform()
-							 select invalidValue;
+			return
+				from validatorDef in entityValidators.Where(ev => IsValidationNeededByTags(activeTags, ev.Tags))
+				let validator = validatorDef.Validator
+				let constraintContext = new ConstraintValidatorContext(null, defaultInterpolator.GetAttributeMessage(validator))
+				where !validator.IsValid(entity, constraintContext)
+				select new InvalidMessageTransformer(constraintContext, activeTags, entityType, null, entity, entity, validatorDef, defaultInterpolator, userInterpolator)
+					 into invalidMessageTransformer
+					 from invalidValue in invalidMessageTransformer.Transform()
+					 select invalidValue;
 		}
 
 		private bool IsValidationNeededByTags(ICollection<object> activeTags, ICollection<object> validatorTags)
@@ -565,90 +569,80 @@ namespace NHibernate.Validator.Engine
 			return GetPotentialInvalidValues(propertyName, value, null);
 		}
 
-
 		/// <summary>
 		/// Create validators based on hibernate metadata if an appropriative validator not defined explicitly
 		/// </summary>
 		/// <param name="properties">Hibernate metadata to analyze</param>
 		public void ConfigureFrom(IEnumerable<Property> properties)
 		{
-			foreach(var prop in properties)
+			foreach (var prop in properties)
 			{
-
 				var propTp = prop.Type.ReturnedClass;
-				var propInfo = entityType.GetProperty(prop.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance); 
+				var propInfo = entityType.GetProperty(prop.Name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-				if (!prop.IsNullable 
-				     && (!propTp.IsValueType
-				         || (propInfo != null && propInfo.PropertyType.IsGenericType && propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))))
+				if (!prop.IsNullable
+					&& (!propTp.IsValueType
+						|| (propInfo != null && propInfo.PropertyType.IsGenericType && propInfo.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))))
 				{
-					ConfigurePropValidatotBasedOnMapping<NotNullAttribute>(prop, null);
+					ConfigurePropertyValidatorBasedOnMapping<NotNullAttribute>(prop);
 				}
 
 				if (propTp == typeof(string))
 				{
-					ConfigurePropValidatotBasedOnMapping<LengthAttribute>(
+					ConfigurePropertyValidatorBasedOnMapping(
 						prop,
-						(attr, col) => attr.Max = col.Length);
+						col => new LengthAttribute { Max = col.Length });
 				}
 				else if (propTp.IsEnum)
 				{
-					ConfigurePropValidatotBasedOnMapping<EnumAttribute>(prop, null);
+					ConfigurePropertyValidatorBasedOnMapping<EnumAttribute>(prop);
 				}
-				else if (   propTp == typeof(decimal)
-						 || propTp == typeof(double)
-						 || propTp == typeof(float)
-						)
+				else if (propTp == typeof(decimal)
+					|| propTp == typeof(double)
+					|| propTp == typeof(float))
 				{
-					ConfigurePropValidatotBasedOnMapping<DigitsAttribute>(
-					    prop,
-					    (attr, col) => { 
-					                    attr.IntegerDigits = col.Precision - col.Scale;
-					                    attr.FractionalDigits = col.Scale;
-					                   });
+					ConfigurePropertyValidatorBasedOnMapping(
+						prop,
+						col => new DigitsAttribute { IntegerDigits = col.Precision - col.Scale, FractionalDigits = col.Scale });
 				}
 				else
 				{
 					ConfigureFromChildComponentMapping(prop, propInfo);
 				}
 
-				//TODO:  Future -> IPropertyConstraint, but how to check this during Update on DB level? 
-
-				//TODO : Some extension mechanism to allow user define rules to auto generate rules
-				//       with user defined validators (attributes) 
-
+				//TODO: Future -> IPropertyConstraint, but how to check this during Update on DB level?
+				//TODO: Some extension mechanism to allow user define rules to auto generate rules
+				//      with user defined validators (attributes)
 			}
 		}
 
 		private void ConfigureFromChildComponentMapping(Property prop, PropertyInfo propInfo)
 		{
-			ChildComponentConfigurer(prop, propInfo,
-					(p, pi) =>
-					{
-						var attrs = new Attribute[] { new ValidAttribute() };
-						CreateMemberAttributes(entityType.GetMember(p.Name).FirstOrDefault(), attrs);
-						CreateChildValidator(pi, attrs);
-					},
-					(tp, component) =>
-					{
-						if (!childClassValidators.ContainsKey(tp))
-						    return;
-						var cv = childClassValidators[tp] as ClassValidator;
-						if (cv == null)
-						    return;
-						cv.ConfigureFrom(component.PropertyIterator);
-				
-					}
-				);
+			ConfigureChildComponent(
+				prop, propInfo,
+				(p, pi) =>
+				{
+					var attrs = new Attribute[] { new ValidAttribute() };
+					CreateMemberAttributes(entityType.GetMember(p.Name).FirstOrDefault(), attrs);
+					CreateChildValidator(pi, attrs);
+				},
+				(tp, component) =>
+				{
+					if (!childClassValidators.ContainsKey(tp))
+						return;
+					if (!(childClassValidators[tp] is ClassValidator cv))
+						return;
+					cv.ConfigureFrom(component.PropertyIterator);
+				});
 		}
 
-		private void ChildComponentConfigurer(Property prop, MemberInfo propInfo,
+		private static void ConfigureChildComponent(Property prop, MemberInfo propInfo,
 			Action<Property, MemberInfo> prepare,
 			Action<System.Type, Component> configure)
 		{
-			Component component = null;
+			Component component;
 			Component component1 = null;
-			System.Type tp = null;
+			System.Type tp;
 			System.Type tp1 = null;
 
 			if (prop.IsComposite && !prop.BackRef)
@@ -663,8 +657,7 @@ namespace NHibernate.Validator.Engine
 			}
 			else
 			{
-				var col = prop.Value as Mapping.Collection;
-				if (col == null)
+				if (!(prop.Value is Mapping.Collection col))
 					return;
 
 				if (TypeUtils.IsGenericDictionary(TypeUtils.GetType(propInfo)))
@@ -699,7 +692,8 @@ namespace NHibernate.Validator.Engine
 			}
 		}
 
-		private void ConfigurePropValidatotBasedOnMapping<TAttr>(Property prop, Action<TAttr, Column> configAttribute)
+		private void ConfigurePropertyValidatorBasedOnMapping<TAttr>(
+			Property prop, Func<Column, TAttr> configAttribute = null)
 			where TAttr : Attribute, new()
 		{
 			var cons = GetMemberConstraints(prop.Name).Where(cns => cns is TAttr).ToArray();
@@ -711,15 +705,13 @@ namespace NHibernate.Validator.Engine
 			if (p == null)
 				return;
 
-			var col = prop.Value.ColumnIterator.FirstOrDefault() as Column;
-			if (col == null)
+			if (!(prop.Value.ColumnIterator.FirstOrDefault() is Column col))
 				return;
 
-			var attr = new TAttr();
-			if (configAttribute != null)
-			{
-				configAttribute(attr, col);
-			}
+			var attr = configAttribute == null ? new TAttr() : configAttribute(col);
+
+			if (attr == null)
+				return;
 
 			var propertyValidator = CreateOrGetValidator(attr);
 			if (propertyValidator == null)
@@ -730,7 +722,6 @@ namespace NHibernate.Validator.Engine
 				ValidatorDef = new ValidatorDef(propertyValidator, null),
 				Getter = p
 			});
-
 
 			CreateMemberAttributes(entityType.GetMember(prop.Name).FirstOrDefault(), new Attribute[]{attr});
 		}
@@ -777,23 +768,21 @@ namespace NHibernate.Validator.Engine
 						return; 
 				}
 
-				ChildComponentConfigurer(property, childGetter,
-					  (p, pi) => {},
-					  (tp, component) =>
+				ConfigureChildComponent(
+					property, childGetter,
+					(p, pi) => {},
+					(tp, component) =>
 					{
-						IClassValidator componentValidator;
-						if (!childClassValidators.TryGetValue(tp, out componentValidator))
+						if (!childClassValidators.TryGetValue(tp, out var componentValidator))
 							return;
 
-						var componentClassValidator = componentValidator as ClassValidator;
-						if (componentClassValidator == null) 
+						if (!(componentValidator is ClassValidator componentClassValidator)) 
 							return;
 
 						var props = component.PropertyIterator;
 						componentClassValidator.Apply(props);
 						componentClassValidator.ApplyToChildrenComponentsValidators(props);
-					}
-					);
+					});
 			}
 		}
 
@@ -801,10 +790,10 @@ namespace NHibernate.Validator.Engine
 		{
 			foreach (Member member in membersToValidate)
 			{
-				var pc = member.ValidatorDef.Validator as IPropertyConstraint;
-				if(pc == null) continue;
+				if(!(member.ValidatorDef.Validator is IPropertyConstraint pc))
+					continue;
 
-				Property property = persistentProperties.FirstOrDefault(p=> p.Name == member.Getter.Name);
+				Property property = persistentProperties.FirstOrDefault(p => p.Name == member.Getter.Name);
 				if (property != null)
 					pc.Apply(property);
 			}
@@ -884,18 +873,19 @@ namespace NHibernate.Validator.Engine
 			var memberValidators = membersToValidate.Where(m => m.Getter.Name.Equals(propertyName) && IsValidationNeededByTags(activeTags, m.ValidatorDef.Tags)).ToArray();
 			if (memberValidators.Length == 0)
 			{
-				throw new TargetException(string.Format("The property or field '{0}' was not found in class {1}", 
-				                                        propertyName, entityType.FullName));
+				throw new TargetException($"The property or field '{propertyName}' was not found in class {entityType.FullName}");
 			}
-			return from member in memberValidators
-				   let validator = member.ValidatorDef.Validator
-				   let constraintContext =
-				   	new ConstraintValidatorContext(propertyName, defaultInterpolator.GetAttributeMessage(validator))
-				   where !validator.IsValid(value, constraintContext)
-				   from invalidValue in
-				   	new InvalidMessageTransformer(constraintContext, activeTags, entityType, propertyName, value, null,
-				                                  member.ValidatorDef, defaultInterpolator, userInterpolator).Transform()
-				   select invalidValue;
+			return
+				from member in memberValidators
+				let validator = member.ValidatorDef.Validator
+				let constraintContext =
+					new ConstraintValidatorContext(propertyName, defaultInterpolator.GetAttributeMessage(validator))
+				where !validator.IsValid(value, constraintContext)
+				from invalidValue in
+					new InvalidMessageTransformer(
+						constraintContext, activeTags, entityType, propertyName, value, null,
+						member.ValidatorDef, defaultInterpolator, userInterpolator).Transform()
+				select invalidValue;
 		}
 
 		private static Property FindPropertyByName(PersistentClass associatedClass, string propertyName)
