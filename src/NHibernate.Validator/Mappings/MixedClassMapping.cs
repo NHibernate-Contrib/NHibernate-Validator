@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using NHibernate.Validator.Engine;
 using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Mappings
@@ -22,34 +24,56 @@ namespace NHibernate.Validator.Mappings
 
 		protected void MixMembersWith(HashSet<MemberInfo> lmembers, IClassMapping mapping)
 		{
-			foreach (MemberInfo info in mapping.GetMembers())
+			foreach (var info in mapping.GetMembers())
 			{
 				lmembers.Add(info);
-				IEnumerable<Attribute> mas = mapping.GetMemberAttributes(info);
-				if (mas != null)
+				var mas = mapping.GetMemberAttributes(info);
+				if (mas == null)
+					continue;
+
+				if (!membersAttributesDictionary.TryGetValue(info, out var attrs))
 				{
-					List<Attribute> attrs;
-					if (!membersAttributesDictionary.TryGetValue(info, out attrs))
-					{
-						membersAttributesDictionary[info] = new List<Attribute>(mas);
-					}
-					else
-					{
-						CombineAttribute(mas, attrs);
-						membersAttributesDictionary[info] = attrs;
-					}
+					membersAttributesDictionary[info] = new List<Attribute>(mas);
+				}
+				else
+				{
+					CombineAttribute(mas, attrs);
+					membersAttributesDictionary[info] = attrs;
 				}
 			}
 		}
 
 		protected static void CombineAttribute(IEnumerable<Attribute> origin, List<Attribute> dest)
 		{
-			foreach (Attribute ma in origin)
+			foreach (var ma in origin)
 			{
-				Attribute found = dest.Find(attribute => ma.TypeId.Equals(attribute.TypeId));
+				var founded = dest.FindAll(attribute => ma.TypeId.Equals(attribute.TypeId));
 
-				if (found != null && !AttributeUtils.AttributeAllowsMultiple(ma))
-					dest.Remove(found);
+				if (founded.Count > 0)
+				{
+					if (!AttributeUtils.AttributeAllowsMultiple(ma))
+					{
+						dest.Remove(founded[0]);
+					}
+					else
+					{
+						if ((ma is ITagableRule matr) && !AttributeUtils.AttributeAllowsMultipleWithIntersectingTags(ma))
+						{
+							foreach (var fd in founded)
+							{
+								if (!(fd is ITagableRule fdtr))
+									continue;
+
+								if ((fdtr.TagCollection.Count == 0 && matr.TagCollection.Count == 0)
+								    || fdtr.TagCollection.Intersect(matr.TagCollection).Any()
+								)
+								{
+									dest.Remove(fd);
+								}
+							}
+						}
+					}
+				}
 
 				dest.Add(ma);
 			}

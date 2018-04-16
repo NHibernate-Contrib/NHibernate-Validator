@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<nhv-mapping xmlns="urn:nhibernate-validator-1.0"
+             namespace="NHibernate.Validator.Tests.Specifics.NHV119"
+             assembly="NHibernate.Validator.Tests">
+  <class name="Model1">
+    <property name="Qnt">
+      <min value="20" tags="T1"/>
+      <min value="200" tags="T2"/>
+    </property>
+  </class>
+</nhv-mapping>

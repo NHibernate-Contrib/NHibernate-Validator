@@ -55,7 +55,7 @@ namespace NHibernate.Validator.Mappings
 		{
 			if (attribute == null)
 			{
-				throw new ArgumentNullException("attribute");
+				throw new ArgumentNullException(nameof(attribute));
 			}
 			// TODO : check attribute in order to validate that it is a valid Entity-Validator attribute
 			classAttributes.Add(attribute);
@@ -65,11 +65,11 @@ namespace NHibernate.Validator.Mappings
 		{
 			if (property == null)
 			{
-				throw new ArgumentNullException("property");
+				throw new ArgumentNullException(nameof(property));
 			}
 			if (attribute == null)
 			{
-				throw new ArgumentNullException("attribute");
+				throw new ArgumentNullException(nameof(attribute));
 			}
 			AddMemberConstraint(property, attribute);
 		}
@@ -78,41 +78,41 @@ namespace NHibernate.Validator.Mappings
 		{
 			if (field == null)
 			{
-				throw new ArgumentNullException("field");
+				throw new ArgumentNullException(nameof(field));
 			}
 			if (attribute == null)
 			{
-				throw new ArgumentNullException("attribute");
+				throw new ArgumentNullException(nameof(attribute));
 			}
 			AddMemberConstraint(field, attribute);
 		}
 
 		public void AddMemberConstraint(MemberInfo member, Attribute attribute)
 		{
-			List<Attribute> constraints;
-
-			if (!membersAttributesDictionary.TryGetValue(member, out constraints))
+			if (!membersAttributesDictionary.TryGetValue(member, out var constraints))
 			{
 				constraints = new List<Attribute>();
 				membersAttributesDictionary.Add(member, constraints);
 			}
-			Attribute found = constraints.Find(x => x.TypeId.Equals(attribute.TypeId));
+			var found = constraints.Find(x => x.TypeId.Equals(attribute.TypeId));
 			if (found == null || AttributeUtils.AttributeAllowsMultiple(attribute))
 			{
+				constraints.Add(attribute); 
+				//Not possible to stop adding constraints here based on intersecting tags, because Tags not yet assigned when this code is executed
+
 #if NETFX
 				log.Debug(string.Format("For class {0} Adding member {1} to dictionary with attribute {2}", EntityType.FullName,
-																member.Name, attribute));
+				                        member.Name, attribute));
 #else
 				Log.Debug("For class {0} Adding member {1} to dictionary with attribute {2}", EntityType.FullName,
 				          member.Name, attribute);
 #endif
-				membersAttributesDictionary[member].Add(attribute);
 			}
 			else
 			{
 #if NETFX
-				log.Debug("Duplicated Attribute avoided: Class:" + typeof(T).FullName + " Member:" + member.Name + " Attribute:"
-				          + attribute);
+				log.Debug("Duplicated Attribute avoided: Class:" + typeof(T).FullName + " Member:" + member.Name + " Attribute:" +
+				          attribute);
 #else
 				Log.Debug("Duplicated Attribute avoided: Class: {0} Member: {1} Attribute: {2}", typeof(T).FullName,
 				          member.Name, attribute);

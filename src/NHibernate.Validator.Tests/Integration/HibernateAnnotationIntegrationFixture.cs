@@ -152,6 +152,19 @@ namespace NHibernate.Validator.Tests.Integration
 			Assert.That(serialColumn.CheckConstraint, Is.Null.Or.Empty, "Validator annotation should not generate check for [Flag]ed Enums");
 		}
 
+		[Test]
+		public void SameAttributeWithDifferentTagsOnPropertyDoNotModifyNhibMappings()
+		{
+			PersistentClass classMapping = cfg.GetClassMapping(typeof(Address));
+			IEnumerator ie = classMapping.GetProperty("Line2").ColumnIterator.GetEnumerator();
+			ie.MoveNext();
+			Column serialColumn = (Column) ie.Current;
+
+
+			Assert.AreEqual(serialColumn.Length, 255, "Same attribute with different tags must not change Nhib mappings");
+		}
+
+
 		/// <summary>
 		/// Test pre-update/save events and custom interpolator
 		/// </summary>

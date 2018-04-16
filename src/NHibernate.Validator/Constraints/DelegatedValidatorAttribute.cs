@@ -1,10 +1,12 @@
 using System;
 using NHibernate.Validator.Engine;
+using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Constraints
 {
 	[Serializable]
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
+	[AllowsMultipleWithIntersectingTags]
 	[CLSCompliant(false)]
 	public class DelegatedValidatorAttribute : EmbeddedRuleArgsAttribute, IValidatorInstanceProvider, IRuleArgs
 	{
