@@ -3,15 +3,16 @@ using System.Linq;
 using System.Text;
 using NHibernate.Mapping;
 using NHibernate.Validator.Engine;
+using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Constraints
 {
 	/// <summary>
-	/// The annotated elemnt has to be in the appropriate range (excluding both limits).
+	/// The annotated element has to be in the appropriate range (excluding both limits).
 	/// Apply on numeric values can be converted to double (<see cref="Convert.ToDouble(object)"/>).
 	/// </summary>
 	[Serializable]
-	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
 	public class WithinAttribute : EmbeddedRuleArgsAttribute, IRuleArgs, IValidator, IPropertyConstraint
 	{
 		private string message = "{validator.within}";
@@ -88,6 +89,9 @@ namespace NHibernate.Validator.Constraints
 
 		public void Apply(Property property)
 		{
+			if (AttributeUtils.AttributeUsedMultipleTimesOnProperty(property, GetType()))
+				return;
+
 			var col = property.ColumnIterator.OfType<Column>().First();
 
 			var check = new StringBuilder(80);

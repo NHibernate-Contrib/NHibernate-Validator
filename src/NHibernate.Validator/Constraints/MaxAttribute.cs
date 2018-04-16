@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using NHibernate.Mapping;
 using NHibernate.Validator.Engine;
+using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Constraints
 {
@@ -9,7 +10,7 @@ namespace NHibernate.Validator.Constraints
 	/// Max restriction on a numeric annotated element
 	/// </summary>
 	[Serializable]
-	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
 	public class MaxAttribute : EmbeddedRuleArgsAttribute, IRuleArgs, IValidator, IPropertyConstraint
 	{
 		private string message = "{validator.max}";
@@ -70,6 +71,9 @@ namespace NHibernate.Validator.Constraints
 
 		public void Apply(Property property)
 		{
+			if (AttributeUtils.AttributeUsedMultipleTimesOnProperty(property, GetType()))
+				return;
+
 			IEnumerator ie = property.ColumnIterator.GetEnumerator();
 			ie.MoveNext();
 			var col = (Column)ie.Current;

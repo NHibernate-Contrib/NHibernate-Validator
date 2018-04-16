@@ -3,6 +3,7 @@ using System.Collections;
 using System.Globalization;
 using NHibernate.Mapping;
 using NHibernate.Validator.Engine;
+using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Constraints
 {
@@ -10,7 +11,7 @@ namespace NHibernate.Validator.Constraints
 	/// Min restriction on a numeric annotated element (or the string representation of a numeric)
 	/// </summary>
 	[Serializable]
-	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
 	public class DecimalMinAttribute : EmbeddedRuleArgsAttribute, IRuleArgs, IValidator, IPropertyConstraint
 	{
 		private string message = "{validator.min}";
@@ -95,6 +96,9 @@ namespace NHibernate.Validator.Constraints
 
 		public void Apply(Property property)
 		{
+			if (AttributeUtils.AttributeUsedMultipleTimesOnProperty(property, GetType()))
+				return;
+
 			IEnumerator ie = property.ColumnIterator.GetEnumerator();
 			ie.MoveNext();
 			var col = (Column)ie.Current;

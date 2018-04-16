@@ -207,6 +207,9 @@ namespace NHibernate.Validator.Engine
 					ValidateClassAtribute(classAttribute);
 				}
 
+
+				var membersToValidateFor1Memeber = new List<Member>();
+
 				foreach (MemberInfo member in map.GetMembers())
 				{
 					var memberAttributes = map.GetMemberAttributes(member);
@@ -221,7 +224,10 @@ namespace NHibernate.Validator.Engine
 							continue;
 
 						var tagable = memberAttribute as ITagableRule;
-						membersToValidate.Add(
+						if (tagable != null)
+							RemoveSameTypeValidatorWithIntersectingTags(membersToValidateFor1Memeber, tagable);
+
+						membersToValidateFor1Memeber.Add(
 							new Member
 							{
 								ValidatorDef =
@@ -230,7 +236,21 @@ namespace NHibernate.Validator.Engine
 							});
 					}
 				}
+
+				if (membersToValidateFor1Memeber.Count > 0)
+				{
+					membersToValidate.AddRange(membersToValidateFor1Memeber);
+					membersToValidateFor1Memeber.Clear();
+				}
 			}
+		}
+
+		private void RemoveSameTypeValidatorWithIntersectingTags(List<Member> membersToValidateFor1Memeber, ITagableRule newAttr)
+		{
+				membersToValidateFor1Memeber.RemoveAll(x => x.ValidatorDef.Validator.GetType() == newAttr.GetType()
+				                                            && ((x.ValidatorDef.Tags == null && newAttr.TagCollection == null)
+				                                                || x.ValidatorDef.Tags.Intersect(newAttr.TagCollection).Any()
+				                                            ));
 		}
 
 		private void AddAttributeToMember(MemberInfo currentMember, Attribute thisattribute)

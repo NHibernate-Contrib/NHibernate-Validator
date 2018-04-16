@@ -1,6 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 using NHibernate.Validator.Engine;
+using NHibernate.Validator.Util;
 
 namespace NHibernate.Validator.Constraints
 {
@@ -9,6 +10,7 @@ namespace NHibernate.Validator.Constraints
 	/// </summary>
 	[Serializable]
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
+	[AllowsMultipleWithIntersectingTags]
 	public class PatternAttribute : EmbeddedRuleArgsAttribute, IRuleArgs, IValidator
 	{
 		private RegexOptions flags = RegexOptions.Compiled;

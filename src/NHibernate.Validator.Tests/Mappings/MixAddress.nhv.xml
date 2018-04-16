@@ -33,5 +33,9 @@
 		<property name="InternalValid">	
 				<asserttrue />
 		</property>
+
+		<property name="Num">	
+				<min value="100" tags="T1 T3" />
+		</property>
 	</class>
 </nhv-mapping>

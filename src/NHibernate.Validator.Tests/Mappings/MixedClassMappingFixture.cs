@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using NHibernate.Validator.Cfg;
 using NHibernate.Validator.Cfg.MappingSchema;
+using NHibernate.Validator.Constraints;
 using NHibernate.Validator.Mappings;
 using NUnit.Framework;
+using SharpTestsEx;
 using RangeAttribute=NHibernate.Validator.Constraints.RangeAttribute;
 
 namespace NHibernate.Validator.Tests.Mappings
@@ -95,6 +97,18 @@ namespace NHibernate.Validator.Tests.Mappings
 					Assert.AreEqual(9999, ra.Max);
 				}
 			}
+
+			mi = typeof(MixAddress).GetProperty("Num");
+			mas = new List<Attribute>(rm.GetMemberAttributes(mi));
+			Assert.AreEqual(2, mas.Count);
+			foreach (var ma in mas)
+			{
+				if (ma is MinAttribute mia)
+				{
+					Assert.Contains(mia.Value, new[] { 100, 1000 });
+				}
+			}
+
 		}
 
 		[Test]
@@ -102,11 +116,11 @@ namespace NHibernate.Validator.Tests.Mappings
 		{
 			IClassMapping rm = new AttributeOverXmlClassMapping(GetXmlClassMapping(typeof (MixAddress)));
 			var mi = new List<MemberInfo>(rm.GetMembers());
-			Assert.AreEqual(16, mi.Count); // the members of the class by reflection
+			Assert.AreEqual(18, mi.Count); // the members of the class by reflection
 
 			rm = new XmlOverAttributeClassMapping(GetXmlClassMapping(typeof (MixAddress)));
 			mi = new List<MemberInfo>(rm.GetMembers());
-			Assert.AreEqual(16, mi.Count);
+			Assert.AreEqual(18, mi.Count);
 		}
 	}
 }

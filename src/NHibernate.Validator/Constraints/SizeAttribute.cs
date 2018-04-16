@@ -18,7 +18,7 @@ namespace NHibernate.Validator.Constraints
 	/// </code>
 	/// </summary>
 	[Serializable]
-	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = true)]
 	public class SizeAttribute : EmbeddedRuleArgsAttribute, IRuleArgs, IValidator
 	{
 		private int max = int.MaxValue;

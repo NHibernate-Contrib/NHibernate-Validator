@@ -10,14 +10,14 @@ namespace NHibernate.Validator.Tests.Utils
 		[Test]
 		public void AttributeCanBeMultiplied()
 		{
-			PatternAttribute patternAttribute = new PatternAttribute();
+			var patternAttribute = new PatternAttribute();
 			Assert.AreEqual(true, (AttributeUtils.AttributeAllowsMultiple(patternAttribute)));
 		}
 
 		[Test]
 		public void AttributeCannotBeMultiplied()
 		{
-			LengthAttribute lenghtAttribute = new LengthAttribute();
+			var lenghtAttribute = new IBANAttribute();
 			Assert.AreEqual(false, (AttributeUtils.AttributeAllowsMultiple(lenghtAttribute)));
 		}
 	}

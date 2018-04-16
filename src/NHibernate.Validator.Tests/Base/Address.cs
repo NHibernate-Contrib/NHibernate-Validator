@@ -60,6 +60,8 @@ namespace NHibernate.Validator.Tests.Base
 			set { zip = value; }
 		}
 
+		[Length(Max = 1000, Tags = "T1")]
+		[Length(Max = 2000, Tags = "T2")]
 		public string Line2
 		{
 			get { return line2; }

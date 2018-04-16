@@ -67,5 +67,12 @@ namespace NHibernate.Validator.Tests.Mappings
 			get { return internalValid; }
 			set { internalValid = value; }
 		}
+
+
+		[Min(1, Tags = "T1")]  //This attribute will be redefined in xml mapping
+		[Min(1000, Tags = "T2")]
+		[Min(333, Tags = "T3")]
+		public int Num { get; set; }
+
 	}
 }
