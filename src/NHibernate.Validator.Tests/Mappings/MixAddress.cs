@@ -69,9 +69,9 @@ namespace NHibernate.Validator.Tests.Mappings
 		}
 
 
-		[Min(1, Tags = "T1")]  //This attribute will be redefined in xml mapping
+		[Min(1, Tags = "T1")]    //This attribute will be redefined in xml mapping
 		[Min(1000, Tags = "T2")]
-		[Min(333, Tags = "T3")]
+		[Min(333, Tags = "T3")]  //And this also will be redefined by xml
 		public int Num { get; set; }
 
 	}
